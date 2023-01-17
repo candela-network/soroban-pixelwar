@@ -9,3 +9,4 @@
 /Cargo.lock
 test.sh
 .soroban
+node_modules
