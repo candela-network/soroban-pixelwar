@@ -1,5 +1,5 @@
 
-class PixelWar {
+class PixelWarConfig {
     constructor(opt) {
         this.start = opt.start;
         this.end = opt.end;
@@ -39,7 +39,7 @@ class PixelWar {
             }
         }
 
-        return new PixelWar(object)
+        return new PixelWarConfig(object)
     }
 };
 
@@ -89,13 +89,64 @@ class Color {
     }
 };
 
+class Player {
+    id;
+    constructor(id) {
+        this.id = id
+    }
+
+    toXDR(format) {
+        return SorobanClient.xdr.ScVal.scvObject(SorobanClient.xdr.ScObject.scoVec([
+            SorobanClient.xdr.ScVal.scvObject(SorobanClient.xdr.ScObject.scoVec([
+                SorobanClient.xdr.ScVal.scvSymbol("Account"),
+                SorobanClient.xdr.ScVal.scvObject(
+                    SorobanClient.xdr.ScObject.scoAccountId(SorobanClient.xdr.PublicKey.publicKeyTypeEd25519(SorobanClient.Keypair.fromPublicKey(this.id).rawPublicKey()))
+                )
+            ]))
+        ]))
+
+            .toXDR(format);
+    }
+
+    static fromXDR(s) {
+        console.log(s)
+        let x = SorobanClient.xdr.ScVal.fromXDR(s, 'base64')
+        return x.u32()
+    }
+}
+
+function decorateFootprint(t, footprint) {
+    if (footprint) {
+        let source = new SorobanClient.Account(t.source, `${parseInt(t.sequence) - 1}`);
+        let op = SorobanClient.Operation.invokeHostFunction({
+            function: t.operations[0].function,
+            parameters: t.operations[0].parameters,
+            footprint: SorobanClient.xdr.LedgerFootprint.fromXDR(footprint, 'base64'),
+        })
+
+        // console.log(call)
+        return new SorobanClient.TransactionBuilder(source, {
+            fee: '1000',
+            networkPassphrase: SorobanClient.Networks.FUTURENET,
+        })
+            .addOperation(
+                op
+            )
+            .setTimeout(0)
+            .build();
+    }
+
+    return t;
+}
+
 class PixelWarContract {
     constructor(id) {
         this.contract = new SorobanClient.Contract(id);
     }
 
-    authorize(source, accountId) {
-        return new SorobanClient.TransactionBuilder(source, {
+    authorize(source, accountId, footprint) {
+        let rawAccount = SorobanClient.Keypair.fromPublicKey(accountId).rawPublicKey().toString('hex')
+        let t = new SorobanClient.TransactionBuilder(source, {
             fee: '100',
             networkPassphrase: SorobanClient.Networks.FUTURENET,
         })
@@ -106,16 +157,19 @@ class PixelWarContract {
                         SorobanClient.xdr.ScObject.scoVec(
                             [
                                 SorobanClient.xdr.ScVal.scvSymbol("Account"),
-                                SorobanClient.xdr.ScVal.scvObject(SorobanClient.xdr.ScObject.scoAccountId(SorobanClient.xdr.PublicKey.publicKeyTypeEd25519(accountId)))
+                                SorobanClient.xdr.ScVal.scvObject(SorobanClient.xdr.ScObject.scoAccountId(SorobanClient.xdr.PublicKey.publicKeyTypeEd25519(rawAccount)))
                             ]
                         )
                     )))
             .setTimeout(SorobanClient.TimeoutInfinite)
             .build();
+
+        return decorateFootprint(t, footprint);
     }
 
-    revoke(source, accountId) {
-        return new SorobanClient.TransactionBuilder(source, {
+    revoke(source, accountId, footprint) {
+        let rawAccount = SorobanClient.Keypair.fromPublicKey(accountId).rawPublicKey().toString('hex')
+        let t = new SorobanClient.TransactionBuilder(source, {
             fee: '100',
             networkPassphrase: SorobanClient.Networks.FUTURENET,
         })
@@ -126,20 +180,24 @@ class PixelWarContract {
                         SorobanClient.xdr.ScObject.scoVec(
                             [
                                 SorobanClient.xdr.ScVal.scvSymbol("Account"),
-                                SorobanClient.xdr.ScVal.scvObject(SorobanClient.xdr.ScObject.scoAccountId(SorobanClient.xdr.PublicKey.publicKeyTypeEd25519(accountId)))
+                                SorobanClient.xdr.ScVal.scvObject(SorobanClient.xdr.ScObject.scoAccountId(SorobanClient.xdr.PublicKey.publicKeyTypeEd25519(rawAccount)))
                             ]
                         )
                     )))
             .setTimeout(SorobanClient.TimeoutInfinite)
             .build();
+
+        return decorateFootprint(t, footprint)
     }
 
-    draw(source, x, y, color) {
-        return new SorobanClient.TransactionBuilder(source, {
-            fee: '100',
+    draw(source, x, y, color, footprint) {
+
+        let t = new SorobanClient.TransactionBuilder(source, {
+            fee: '1000',
             networkPassphrase: SorobanClient.Networks.FUTURENET,
         })
             .addOperation(
+
                 this.contract.call(
                     "draw",
                     SorobanClient.xdr.ScVal.scvU32(x),
@@ -148,8 +206,49 @@ class PixelWarContract {
                     )
                 )
             )
-            .setTimeout(SorobanClient.TimeoutInfinite)
+            .setTimeout(0)
             .build();
+
+        return decorateFootprint(t, footprint);
+    }
+
+    async getConfig(server) {
+        try {
+            let response = await server.getContractData(this.contract.contractId(), GAME);
+            console.log(response)
+            return PixelWarConfig.fromXDR(
+                response.xdr
+            )
+        } catch {
+            return undefined
+        }
+    }
+
+    async getPixelColor(server, x, y) {
+        try {
+            let response = await server.getContractData(this.contract.contractId(), new Pixel(x, y));
+            return Color.fromXDR(
+                response.xdr
+            )
+        } catch {
+            return undefined
+        }
+
+    }
+
+    async getPlayerCredits(server, id) {
+        try {
+            let response = await server.getContractData(this.contract.contractId(), new Player(id));
+            console.log(response)
+            return Player.fromXDR(
+                response.xdr
+            )
+        } catch (e) {
+
+            console.log(e)
+            return undefined
+        }
+
     }
 
 }
@@ -157,4 +256,4 @@ class PixelWarContract {
 const GAME = SorobanClient.xdr.ScVal.scvSymbol("GAME");
 const ADMIN = SorobanClient.xdr.ScVal.scvSymbol("ADMIN");
 
-export { GAME, ADMIN, PixelWar, Pixel, Color, PixelWarContract };
+export { GAME, ADMIN, PixelWarConfig, Pixel, Color, Player, PixelWarContract };

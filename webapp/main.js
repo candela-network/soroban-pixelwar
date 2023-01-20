@@ -1,66 +1,279 @@
 
-// var SorobanClient = require("soroban-client")
-import { GAME, PixelWar, Pixel, Color, PixelWarContract } from './pixelwar.js';
-console.log(SorobanClient);
-
-const pixelWarContractId = "1cdabe394023ce8359a696c47c3b28e4d85b81d6028ad4264bd78e58e4cc0bde"
-const RPC = new SorobanClient.Server("http://127.0.0.1:8000/soroban/rpc", { allowHttp: true })
-var xdr = SorobanClient.xdr;
+import { PixelWarContract } from './pixelwar.js';
 
 
 
+let configResponse = await fetch("./config.json")
+let config = await configResponse.json()
+
+const dapp_url = config.dapp_url
+const auth_url = config.auth_url
+const result_img = config.result_img
+const pixelWarContractId = config.contract_id
+
+const RPC = new SorobanClient.Server(config.rpc_url)
+const pixelWarContract = new PixelWarContract(pixelWarContractId);
+
+// Config, can be used to dynamically load the canvas
+// let config = await pixelWarContract.getConfig(RPC)
+// console.log(config)
+
+function sleep(ms) {
+	return new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
+}
+
+// Call the contract draw() function
+async function setPixel(x, y, color) {
 
 
-let param = GAME;
-let res = await RPC.getContractData(pixelWarContractId, param)
-// let result = SorobanClient.xdr.ScVal.fromXDR(res.xdr, 'base64')
-console.log(res)
-console.log(PixelWar.fromXDR(res.xdr))
+    document.getElementById('setpixel').disabled = true;
 
-for (let i = 0; i < 10; i++) {
-    for (let j = 0; j < 10; j++) {
-        let param = new Pixel(i, j);
-        try {
-            let res = await RPC.getContractData(pixelWarContractId, param)
-            let result = SorobanClient.xdr.ScVal.fromXDR(res.xdr, 'base64')
-            console.log(res.xdr)
-            let color = Color.fromXDR(res.xdr);
-            console.log("Color:" + color)
-            try {
-                console.log("ColorXDR :" + color.toXDR('base64'))
-            } catch (e) {
-                console.log(e)
+    try {
+
+        let account = await RPC.getAccount(getPubkey());
+        let source = new SorobanClient.Account(account.id, account.sequence)
+
+        // let pwcontract = new PixelWarContract(pixelWarContractId)
+
+        let t = pixelWarContract.draw(source, x, y, color)
+        t.sign(getKeypair())
+
+        let sim = await RPC.simulateTransaction(t)
+        console.log(sim)
+
+        account = await RPC.getAccount(getPubkey());
+        source = new SorobanClient.Account(account.id, account.sequence)
+        let t2 = pixelWarContract.draw(source, x, y, color, sim.footprint)
+        t2.sign(getKeypair())
+        let { id } = await RPC.sendTransaction(t2)
+
+        let status = "pending"
+        while (status == "pending") {
+            let response = await RPC.getTransactionStatus(id)
+            status = response.status;
+            switch (response.status) {
+
+                case "success": {
+                    console.log(response.results)
+                    document.getElementById("feedback").innerHTML = `success!`
+                };
+                    break;
+                case "error":
+                    console.log(response)
+                    document.getElementById("feedback").innerHTML = "oops, an  error occured!"
+                    break;
+                default:
+                    await sleep(1000)
             }
-        } catch (e) {
-            // console.log(e)
         }
 
+        main()
+    } finally {
+        document.getElementById('setpixel').disabled = false;
     }
 }
 
-let kp = SorobanClient.Keypair.fromSecret("SAVFSY2DEROLSCXIW36Q2VM67GSCPMXQHJMLXQWIR3LIL55VLMCDOSPD")
-let srcAccountId = kp.publicKey()
-let account =  await RPC.getAccount(srcAccountId);
-console.log(account)
-let source = new SorobanClient.Account(account.id, account.sequence)
+function hexToBytes(hex) {
+    for (var bytes = [], c = 0; c < hex.length; c += 2)
+        bytes.push(parseInt(hex.substr(c, 2), 16));
+    return bytes;
+}
 
-let pwcontract = new PixelWarContract(pixelWarContractId)
+function getUsername() {
+    return getUser().username + '#' + getUser().discriminator
+}
 
-let t = pwcontract.draw(source, 7, 8, [1, 2, 3])
-t.sign(kp)
-let {id} = await RPC.sendTransaction(t)
+function getUser() {
+    return JSON.parse(localStorage.getItem("discord"))
+}
 
-let status = "pending"
-while (status == "pending") {
-    let response = await RPC.getTransactionStatus(id)
-    status = response.status;
-    switch (response.status) {
-        
-        case "success": {
-            console.log(response.results)
+function getDiscordId() {
+    return getUser().id
+}
+
+function getAvatarImg() {
+    return "https://cdn.discordapp.com/avatars/" + getDiscordId() + "/" + getUser().avatar + ".png"
+}
+
+function hasKeypair() {
+    return localStorage.getItem("state") != null
+}
+function getKeypair() {
+    let s = JSON.parse(localStorage.getItem("state")).s
+    return SorobanClient.Keypair.fromRawEd25519Seed(hextoarr(s))
+}
+
+function storeKeypair(s) {
+    let kp = SorobanClient.Keypair.fromSecret(s)
+    localStorage.setItem("state", JSON.stringify({
+        p: kp.rawPublicKey().toString('hex'),
+        s: kp.rawSecretKey().toString('hex')
+    }))
+}
+
+function hextoarr(hexString) {
+    var pairs = hexString.match(/[\dA-F]{2}/gi);
+
+    // convert the octets to integers
+    var integers = pairs.map(function (s) {
+        return parseInt(s, 16);
+    });
+
+    var array = new Uint8Array(integers);
+    return array.buffer;
+}
+
+function getPubkey() {
+    return getKeypair().publicKey()
+}
+
+
+async function main() {
+
+    document.getElementById('username').innerText = getUsername();
+
+    document.getElementById('avatar').src = getAvatarImg()
+    document.getElementById('pubkey').innerText = getPubkey().substr(0, 4) + "..." + getPubkey().substr(52);
+    document.getElementById('container').style.display = 'block'
+
+    console.log(getPubkey())
+    console.log(SorobanClient.Keypair.fromPublicKey(getPubkey()).rawPublicKey().toString('hex'))
+    let credits = await pixelWarContract.getPlayerCredits(RPC, getPubkey())
+    document.getElementById('credits').innerHTML = credits;
+}
+
+
+
+function computeXY(canvas, penSize, e) {
+
+    let rect = canvas.getBoundingClientRect();
+    let scaleX = (rect.right - rect.left) / canvas.width;
+    let scaleY = (rect.bottom - rect.top) / canvas.height;
+
+    if (e) {
+        return {
+            x: parseInt((e.clientX - rect.left) / scaleX),
+            y: parseInt((e.clientY - rect.top) / scaleY)
         };
-        break;
-        default:
     }
+    return [];
+
+}
+
+
+
+document.getElementById('setpixel').addEventListener('click', event => {
+
+    let x = document.getElementById('px').value
+    let y = document.getElementById('py').value
+    let color = document.getElementById('colorpicker').value
+
+    console.log(x + ", " + y + ", " + hexToBytes(color.substr(1)))
+    setPixel(Number(x), Number(y), hexToBytes(color.substr(1)))
+
+})
+
+document.getElementById('pwimage').addEventListener('click', e => {
+
+    let ratio = 6;
+    let canvas = document.getElementById('pwimage')
+
+    var pos = computeXY(canvas, ratio, e);
+    var x = pos.x; //e.pageX - pos.x;
+    var y = pos.y; //e.pageY - pos.y;
+    var c = canvas.getContext('2d');
+    var p = c.getImageData(x, y, ratio, ratio).data;
+
+    document.getElementById('px').value =  Math.floor(x / ratio);;
+    document.getElementById('py').value =  Math.floor(y / ratio);;
+    document.getElementById('colorpicker').value = '#' + p[0].toString(16).padStart(2, '0')
+        + p[1].toString(16).padStart(2, '0')
+        + p[2].toString(16).padStart(2, '0');
+})
+
+function displayLogin() {
+    let st = JSON.parse(localStorage.getItem("state"))
+    console.log(st)
+    let state = st.p;
+    console.log(state)
+    let url = "https://discord.com/api/oauth2/authorize?client_id=1063977093530124339&redirect_uri=http%3A%2F%2F127.0.0.1%3A8081%2Fwebapp%2F&response_type=code&scope=identify%20guilds.members.read&state=" + state
+
+    document.getElementById('login').href = url;
+    document.getElementById('login').style.display = 'block'
+}
+
+// Display and update the pixel war canvas
+var refresh = () => {
+    let canvas = document.getElementById('pwimage')
+    let ctx = canvas.getContext('2d');
+
+    let img = new Image()
+
+    img.onload = function () {
+        //draw background image
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, 600, 600);
+
+    };
+
+
+    img.src = result_img + "?time=" + Date.now()
+    setTimeout(refresh, 10000)
+}
+refresh()
+
+//
+// When the user is not authenticated yet
+//
+if (!getUser()) {
+    const fragment = new URLSearchParams(window.location.search);
+    var code = fragment.get('code');
+    var backstate = fragment.get('state')
+
+    // console.log("Got code: " + code)
+    // console.log("Got state: " + backstate)
+
+    if (!code) {
+
+        storeKeypair(SorobanClient.Keypair.random().secret())
+        displayLogin()
+
+    } else {
+        document.getElementById("feedback").innerHTML = "Loading..."
+        document.getElementById("loader").style.display = 'grid'
+        let state = getKeypair().rawPublicKey().toString('hex')
+        if (state != backstate) {
+            console.log("Inconsistent state, you may have been clickjacked")
+        } else {
+
+            // document.getElementById('info').style.display = 'block'
+            
+            let result = await fetch(auth_url + '?code=' + code + "&state=" + state)
+            let response = await result.json()
+
+            if (response.user) {
+                localStorage.setItem("discord", JSON.stringify(response.user))
+                window.location = dapp_url
+            } else {
+                document.getElementById("feedback").innerHTML = response.error
+            }
+        }
+    }
+}
+
+//
+// Id the user is still not authenticated, display the login page again
+//
+document.getElementById("loader").style.display = 'none'
+document.getElementById("feedback").innerHTML = ""
+if (!getUser()) {
+    displayLogin()
+} else {
+
+    document.getElementById('info').style.display = 'block'
+    document.getElementById('info2').style.display = 'block'
+    main()
 }
 

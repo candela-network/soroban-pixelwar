@@ -2,7 +2,11 @@ extern crate std;
 use std::{println, time::UNIX_EPOCH};
 
 use crate::{PixelWarContract, PixelWarContractClient};
-use soroban_sdk::{bytesn, testutils::{Accounts, Ledger, self}, Address, Env};
+use soroban_sdk::{
+    bytesn,
+    testutils::{self, Accounts, Ledger},
+    Address, Env, bytes,
+};
 
 #[test]
 fn test_draw() {
@@ -17,7 +21,10 @@ fn test_draw() {
     env.ledger().set(testutils::LedgerInfo {
         protocol_version: 0,
         sequence_number: 0,
-        timestamp: std::time::SystemTime::now().duration_since(UNIX_EPOCH).expect("Time flies").as_secs(),
+        timestamp: std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time flies")
+            .as_secs(),
         network_passphrase: [0u8].to_vec(),
         base_reserve: 0,
     });
@@ -32,8 +39,6 @@ fn test_draw() {
     pwcontract
         .with_source_account(&player1)
         .draw(&5, &3, &bytesn!(&env, [128, 128, 128]));
-
-
 }
 
 #[test]
@@ -203,7 +208,10 @@ fn test_closed() {
     env.ledger().set(testutils::LedgerInfo {
         protocol_version: 0,
         sequence_number: 0,
-        timestamp: std::time::SystemTime::now().duration_since(UNIX_EPOCH).expect("Time flies").as_secs(),
+        timestamp: std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time flies")
+            .as_secs(),
         network_passphrase: [0u8].to_vec(),
         base_reserve: 0,
     });
@@ -221,6 +229,44 @@ fn test_closed() {
     pwcontract
         .with_source_account(&player1)
         .draw(&2, &8, &bytesn!(&env, [128, 128, 128]));
+}
+
+#[test]
+fn test_finalize() {
+    let env = Env::default();
+
+    let admin = env.accounts().generate_and_create();
+    let player1 = env.accounts().generate_and_create();
+
+    let contract_id = env.register_contract(None, PixelWarContract);
+    let pwcontract = PixelWarContractClient::new(&env, &contract_id);
+
+    env.ledger().set(testutils::LedgerInfo {
+        protocol_version: 0,
+        sequence_number: 0,
+        timestamp: std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time flies")
+            .as_secs(),
+        network_passphrase: [0u8].to_vec(),
+        base_reserve: 0,
+    });
+    let end = env.ledger().timestamp() - 1;
+
+    println!("{}", env.ledger().timestamp());
+
+    pwcontract
+        .with_source_account(&admin)
+        .init(&10, &10, &end.into(), &10);
+    pwcontract
+        .with_source_account(&admin)
+        .authorize(&Address::Account(player1.clone()));
+
+    pwcontract
+        .with_source_account(&admin)
+        .finalize(&bytes!(&env, 0xffffff));
+
+
 }
 
 #[test]
@@ -253,4 +299,6 @@ fn borders() {
     pwcontract
         .with_source_account(&player1)
         .draw(&9, &0, &bytesn!(&env, [128, 128, 128]));
+
+    
 }
