@@ -11,3 +11,4 @@ test.sh
 .soroban
 node_modules
 config.json
+.DS_Store
