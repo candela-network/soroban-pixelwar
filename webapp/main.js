@@ -222,10 +222,8 @@ var clickReveal = document.getElementById('secretKey').addEventListener('click',
 
 function displayLogin() {
     let st = JSON.parse(localStorage.getItem("state"))
-    console.log(st)
     let state = st.p;
-    console.log(state)
-    let url = "https://discord.com/api/oauth2/authorize?client_id=1063977093530124339&redirect_uri=http%3A%2F%2F127.0.0.1%3A8081%2Fwebapp%2F&response_type=code&scope=identify%20guilds.members.read&state=" + state
+    let url = config.oauth_url + "&state=" +state
 
     document.getElementById('login').href = url;
     document.getElementById('login').style.display = 'block'
