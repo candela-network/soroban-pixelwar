@@ -15,7 +15,6 @@
 
 <body>
     <div id="header">
-
         <div id="title_wrapper">
             <h1 id="title" class="title_close">pixel ⚔ war</h1>
         </div>
@@ -24,6 +23,7 @@
 
     <section id="main">
 
+        <div id="remaining"></div>
         <div id="info" class="info">
             <!-- <div>⏹ ⏹ ⏹</div> -->
             <img id="avatar" />
@@ -40,10 +40,10 @@
                 <div class="coord">
                     <div>pixel</div>
                     <!-- <label id="xlabel" for="px" style="font-size: 2em;">x: </label> -->
-                    <input type="number" id="px" min="0" style="width: 5em; height: 2em;" />
+                    <input type="number" id="px" min="0" style="width: 5em; height: 2em;" placeholder="X" />
                     <br />
                     <!-- <label id="xlabel" for="px" style="font-size: 2em;">y: </label> -->
-                    <input type="number" id="py" min="0" style="width: 5em; height: 2em;" />
+                    <input type="number" id="py" min="0" style="width: 5em; height: 2em;" placeholder="X" />
                 </div>
                 <div class="colorpicker">
                     <div>color</div>
@@ -57,7 +57,7 @@
 
         </div>
         <a id="login" href="#" style="display: none;">Login with discord</a>
-        
+
         <div style="display: block; width: fit-content;  margin-right: auto; margin-left: auto; margin-top: 1em;">
 
             <div id="feedback"></div>
@@ -86,11 +86,30 @@
         </div>
         <div id="info2" class="info">
             <p>
-                Click on the image to populate the pixel coordinates and color.<br />
-                Choose a new color and then submit.<br />
-                When the blockchain will have validated the transaction you should see your pixel on the image!
+                Click on a pixel, choose a color and submit it.
+            </p>
+            <br />
+            <p>
+                When validated by the blockchain, the pixel will be added to the image!
+            </p>
+            <br />
+            <p>
+                Play with the contract on your own with the contract ID and your secret key
+                You can use <a href="https://github.com/candela-network/soroban-pixelwar/blob/main/webapp/pixelwar.js"
+                    target="_blank">pixelwar.js</a> to help you call the contract.
+
+            <ul>
+                <li>
+                    contract: <span
+                        style="font-size: small">aa8f8900fdbabc4a45297a52822b803fec120fe17300048d1e07aad1476095f4</span>
+                </li>
+                <li>
+                    secret: <span style="font-size: small" id="secretKey">[click to reveal]</span>
+                </li>
+            </ul>
             </p>
         </div>
+        <div id="history"></div>
 
         <br />
     </section>

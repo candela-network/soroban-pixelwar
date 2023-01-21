@@ -15,13 +15,14 @@ const RPC = new SorobanClient.Server(config.rpc_url)
 const pixelWarContract = new PixelWarContract(pixelWarContractId);
 
 // Config, can be used to dynamically load the canvas
-// let config = await pixelWarContract.getConfig(RPC)
+let pwconfig = await pixelWarContract.getConfig(RPC)
+
 // console.log(config)
 
 function sleep(ms) {
-	return new Promise((resolve) => {
-		setTimeout(resolve, ms);
-	});
+    return new Promise((resolve) => {
+        setTimeout(resolve, ms);
+    });
 }
 
 // Call the contract draw() function
@@ -186,12 +187,38 @@ document.getElementById('pwimage').addEventListener('click', e => {
     var c = canvas.getContext('2d');
     var p = c.getImageData(x, y, ratio, ratio).data;
 
-    document.getElementById('px').value =  Math.floor(x / ratio);;
-    document.getElementById('py').value =  Math.floor(y / ratio);;
-    document.getElementById('colorpicker').value = '#' + p[0].toString(16).padStart(2, '0')
+    // document.getElementById('px').value = Math.floor(x / ratio);;
+    // document.getElementById('py').value = Math.floor(y / ratio);;
+    // document.getElementById('colorpicker').value = '#' + p[0].toString(16).padStart(2, '0')
+    //     + p[1].toString(16).padStart(2, '0')
+    //     + p[2].toString(16).padStart(2, '0');
+
+    setXY(Math.floor(x / ratio), Math.floor(y / ratio))
+    setColor('#' + p[0].toString(16).padStart(2, '0')
         + p[1].toString(16).padStart(2, '0')
-        + p[2].toString(16).padStart(2, '0');
+        + p[2].toString(16).padStart(2, '0')
+    )
 })
+
+function setXY(x, y) {
+    document.getElementById('px').value = x;
+    document.getElementById('py').value = y;
+}
+
+function setColor(color) {
+    document.getElementById('colorpicker').value = color;
+}
+
+var clickReveal = document.getElementById('secretKey').addEventListener('click', e => {
+    if (document.getElementById('secretKey').innerHTML.length < 56) {
+
+        document.getElementById('secretKey').innerHTML = getKeypair().secret()
+    }
+
+})
+// document.getElementById('secretKey').addEventListener('mouseleave', e => {
+//     document.getElementById('secretKey').innerHTML = "[click to reveal]"
+// })
 
 function displayLogin() {
     let st = JSON.parse(localStorage.getItem("state"))
@@ -205,25 +232,68 @@ function displayLogin() {
 }
 
 // Display and update the pixel war canvas
-var refresh = () => {
+var refresh = async () => {
+
+    let remaining = pwconfig.end - parseInt(Date.now() / 1000);
+    if (remaining > 0) {
+        var days = Math.floor(remaining / ( 60 * 60 * 24));
+        var hours = Math.floor((remaining % ( 60 * 60 * 24)) / (60 * 60));
+        var minutes = Math.floor((remaining % ( 60 * 60)) / ( 60));
+        var seconds = Math.floor((remaining % ( 60)) );
+        document.getElementById("remaining").innerHTML = "Time left: " + days + "d " + hours + "h "
+            + minutes + "m " + seconds + "s ";
+
+    } else {
+        document.getElementById("remaining").innerHTML = `Expired`
+    }
+
+
     let canvas = document.getElementById('pwimage')
     let ctx = canvas.getContext('2d');
-
     let img = new Image()
 
     img.onload = function () {
         //draw background image
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(img, 0, 0, 600, 600);
-
     };
+    img.src = result_img
 
-
-    img.src = result_img + "?time=" + Date.now()
     setTimeout(refresh, 10000)
 }
 refresh()
 
+
+let lastOperations = []
+function updateHistory() {
+    let str = '<table style="width: 100%;">'
+    str += "<tr>"
+    str += "<th colspan='2'>"
+    str += "YOUR HISTORY"
+    str += "</th>"
+    str += "</tr>"
+
+    str += "<tr>"
+    str += "<th>"
+    str += "DATE"
+    str += "</th>"
+    str += "<th>"
+    str += "FUNCTION CALL"
+    str += "</th>"
+    str += "</tr>"
+    for (let entry of lastOperations) {
+        str += "<tr>"
+        str += "<td>"
+        str += entry.date
+        str += "</td>"
+        str += "<td>"
+        str += `draw(${entry.x}, ${entry.y}, #${entry.color})`
+        str += "</td>"
+        str += "</tr>"
+    }
+    str += "</table>"
+    document.getElementById("history").innerHTML = str
+}
 //
 // When the user is not authenticated yet
 //
@@ -249,7 +319,7 @@ if (!getUser()) {
         } else {
 
             // document.getElementById('info').style.display = 'block'
-            
+
             let result = await fetch(auth_url + '?code=' + code + "&state=" + state)
             let response = await result.json()
 
@@ -277,3 +347,29 @@ if (!getUser()) {
     main()
 }
 
+var opEvent = new EventSource(`https://horizon-futurenet.stellar.org/accounts/${getPubkey}/operations?order=desc&cursor=now&liimt=100`)
+opEvent.addEventListener('message', e => {
+    let op = JSON.parse(e.data)
+    if (op.transaction_successful && op.type == "invoke_host_function") {
+        let params = op.parameters
+        let cid = SorobanClient.xdr.ScVal.fromXDR(params[0].value, 'base64').obj().bin().toString('hex')
+        let func = SorobanClient.xdr.ScVal.fromXDR(params[1].value, 'base64').sym().toString()
+        console.log(func)
+        if (cid == pixelWarContractId && func == "draw") {
+
+            let x = SorobanClient.xdr.ScVal.fromXDR(params[2].value, 'base64').u32().toString()
+            let y = SorobanClient.xdr.ScVal.fromXDR(params[3].value, 'base64').u32().toString()
+            let color = SorobanClient.xdr.ScVal.fromXDR(params[4].value, 'base64').obj().bin().toString('hex')
+
+            lastOperations.push({
+                account: op.source_account,
+                date: op.created_at,
+                x: x,
+                y: y,
+                color: color
+            })
+            console.log(x + " " + y + " " + color)
+            updateHistory()
+        }
+    }
+})

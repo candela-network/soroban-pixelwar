@@ -103,14 +103,25 @@ section {
 }
 
 .info {
-    text-align: center;
+    /* text-align: center; */
     display: none;
     width: 600px;
-    margin: auto;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 #login {
     text-align: center;
 }
 
+#remaining {
+    width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
 
+#history {
+    width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}

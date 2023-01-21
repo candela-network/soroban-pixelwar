@@ -14,6 +14,7 @@ var image = new Jimp(100, 100)
 var main = async () => {
 
     let id = 100000;
+    let modified = false;
     try {
 
         let stop = (await HORIZON.ledgers().order("desc").limit(1).call()).records[0].sequence
@@ -54,6 +55,7 @@ var main = async () => {
                     console.log(x + ", " + y + ", " + c.toString('hex'))
                     let color = Jimp.rgbaToInt(c[0], c[1], c[2], 0xff)
                     image.setPixelColor(color, x, y)
+                    modified = true;
                 }
             }
         }
@@ -64,9 +66,12 @@ var main = async () => {
         console.log(e)
     }
 
-    image.write('test.png', (err) => {
-        if (err) throw err;
-    });
+    if (modified) {
+
+        image.write('test.png', (err) => {
+            if (err) throw err;
+        });
+    }
 
     // image.getBase64(Jimp.MIME_PNG, (err, value) => {
     //     console.log("size: " + value.length)
