@@ -7,25 +7,35 @@
 }
 html {
     /* background-color: #fcde67; */
-
-    background-color: lightyellow;
+    /* #a0cfff */
+    background-color: #eff1f2;
 }
 body {
-    background-color: lightyellow;
+    background-color: #eff1f2;
     
 }
 html,body { height: 100%; margin: 0px; padding: 0px; }
 
 #header {
+    /* position: absolute;
+    top: 0;
+    width: 100%;
+    background-color: #fcde67; */
+
     position: absolute;
     top: 0;
     width: 100%;
-    background-color: #fcde67;
+    background-color: #16032f;
+    color: white;
+    text-shadow: 1px 1px 2px #e1e1e1, 0 0 12px #fe16ed, 0 0 5px #fe16ed;
+    box-shadow: 0 2px 2px 0 #fe16ed, 0 2px 20px 0 #fe16ed!important;
 }
 #title_wrapper {
     display: block;
-    width: 100%;
+    width: fit-content;
     border-bottom: 0.1rem solid black;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 #title {
@@ -41,11 +51,11 @@ html,body { height: 100%; margin: 0px; padding: 0px; }
     font-size: 1rem;
     font-family: sans-serif;
     font-weight: lighter;
-    width: 18.5rem;
+    width: fit-content;
     margin-left: auto;
     margin-right: auto;
     position: relative;
-    top:4.5rem;
+    top: 5rem;
     text-align: center;
 }
 
@@ -80,7 +90,14 @@ section {
     grid-template-rows: 1fr;
     grid-column-gap: 0px;
     grid-row-gap: 0px;
+    
+}
 
+#container {
+
+z-index: 10;
+background-color: #eff1f2;
+border: 1px solid black;
 }
 
 .colorpicker {
@@ -124,4 +141,21 @@ section {
     width: 600px;
     margin-left: auto;
     margin-right: auto;
+}
+
+.shadow {
+    box-shadow: 0 10px 16px 0 rgb(0 0 0 / 20%), 0 6px 20px 0 rgb(0 0 0 / 19%) !important;
+}
+
+#canvaswrapper {
+    display: block;
+    width: 100%;
+    margin-right: auto;
+    margin-left: auto;
+    margin-top: 1em;
+    /* background: left 3.4em top 50% no-repeat url(./hackathon.png); */
+}
+
+canvas {
+    z-index: 10;
 }

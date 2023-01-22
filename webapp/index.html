@@ -8,6 +8,7 @@
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <link rel='stylesheet' type='text/css' media='screen' href='main.css'>
     <link rel='stylesheet' type='text/css' media='screen' href='loader.css'>
+    <link rel='stylesheet' type='text/css' media='screen' href='stars.css'>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/soroban-client/0.3.0/soroban-client.js"></script>
     <!-- <script src='pixelwar.js' type="module"></script> -->
     <script src='main.js' type="module"></script>
@@ -23,14 +24,16 @@
 
     <section id="main">
 
+        <div id='stars2'></div>
+        <!-- <div id='stars3'></div> -->
         <div id="remaining"></div>
         <div id="info" class="info">
             <!-- <div>⏹ ⏹ ⏹</div> -->
-            <img id="avatar" />
+            <img id="avatar" class="shadow"/>
             <div id="username"></div>
             <div id="pubkey"></div>
         </div>
-        <div id="container"
+        <div id="container" class="shadow"
             style="display: none; width: fit-content;  margin-right: auto; margin-left: auto; margin-top: 1em;">
 
             <div id="creditsDisplay" style=" padding: 0.2em;">Credits <span id="credits"></span></div>
@@ -56,9 +59,9 @@
 
 
         </div>
-        <a id="login" href="#" style="display: none;">Login with discord</a>
+        <!-- <a id="login" href="#" style="display: none;">Login with discord</a> -->
 
-        <div style="display: block; width: fit-content;  margin-right: auto; margin-left: auto; margin-top: 1em;">
+        <div id="canvaswrapper">
 
             <div id="feedback"></div>
             <div class="loader-bar" id="loader" style="display: none;">
@@ -79,9 +82,9 @@
                 <div class="block-meter"></div>
                 <div class="block-meter"></div>
             </div>
-            <div style="display: block; margin-right: auto; margin-left: auto">
+            <div style="display: block; margin-right: auto; margin-left: auto; width: fit-content;">
                 <canvas id="pwimage" width="600px" height="600px"
-                    style="border: solid 2px black;background-color: #e1e1e1;" />
+                    style="border: solid 2px black;background-color: #e1e1e1;" class="shadow"/>
             </div>
         </div>
         <div id="info2" class="info">
@@ -112,6 +115,7 @@
         <div id="history"></div>
 
         <br />
+
     </section>
 </body>
 
