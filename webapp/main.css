@@ -135,6 +135,7 @@ border: 1px solid black;
     width: 600px;
     margin-left: auto;
     margin-right: auto;
+    text-align: center;
 }
 
 #history {
@@ -149,7 +150,7 @@ border: 1px solid black;
 
 #canvaswrapper {
     display: block;
-    width: 100%;
+    width: fit-content;
     margin-right: auto;
     margin-left: auto;
     margin-top: 1em;
