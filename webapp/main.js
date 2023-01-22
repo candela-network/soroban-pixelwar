@@ -310,7 +310,7 @@ if (!getUser()) {
 
     } else {
         document.getElementById("feedback").innerHTML = "Loading..."
-        document.getElementById("loader").style.display = 'grid'
+        // document.getElementById("loader").style.display = 'grid'
         let state = getKeypair().rawPublicKey().toString('hex')
         if (state != backstate) {
             console.log("Inconsistent state, you may have been clickjacked")
@@ -334,7 +334,7 @@ if (!getUser()) {
 //
 // Id the user is still not authenticated, display the login page again
 //
-document.getElementById("loader").style.display = 'none'
+// document.getElementById("loader").style.display = 'none'
 document.getElementById("feedback").innerHTML = ""
 if (!getUser()) {
     displayLogin()
