@@ -1,5 +1,15 @@
 # soroban-pixelwar (project submitted to [hacka-soroban-athon](https://hacka-soroban-athon.devpost.com/))
 
+## Project structure
+
+- [src/](https://github.com/candela-network/soroban-pixelwar/tree/main/src) The soroban contract
+- [webapp/](https://github.com/candela-network/soroban-pixelwar/tree/main/webapp) The web application
+- [webapp/backend/auth/](https://github.com/candela-network/soroban-pixelwar/tree/main/webapp/backend/auth) The backend discord integration
+- [webapp/backend/listener/](https://github.com/candela-network/soroban-pixelwar/tree/main/webapp/backend/listener) The soroban event listener that draws the picture
+- [example/](https://github.com/candela-network/soroban-pixelwar/tree/main/example) An example to interact with the contract
+
+
+
 ## Inspiration
 
 r/place on Reddit is a fun event and I thought it could be nice to bring it to Stellar
